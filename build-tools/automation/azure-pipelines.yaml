@@ -1441,7 +1441,7 @@ stages:
     symbolArtifactName: nuget-signed
     symbolArtifactPatterns: |
       !*Darwin*
-    pushToShippingFeed: true
+    pushToShippingFeed: false
     nupkgArtifactName: nuget-signed
     msiNupkgArtifactName: vs-msi-nugets
     condition: eq(variables['MicroBuildSignType'], 'Real')
