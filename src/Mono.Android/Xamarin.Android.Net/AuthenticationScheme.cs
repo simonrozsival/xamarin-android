@@ -31,6 +31,16 @@ namespace Xamarin.Android.Net
 		/// <summary>
 		/// The HTTP Digest authentication scheme
 		/// </summary>
-		Digest
+		Digest,
+
+		/// <summary>
+		/// The NTLM authentication scheme
+		/// </summary>
+		Ntlm,
+
+		/// <summary>
+		/// The Negotiate authentication scheme
+		/// </summary>
+		Negotiate
 	}
 }
