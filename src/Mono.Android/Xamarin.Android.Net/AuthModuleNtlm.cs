@@ -13,9 +13,10 @@ namespace Xamarin.Android.Net
 		public bool CanPreAuthenticate { get; } = true;
 
 		public Authorization? Authenticate (string challenge, HttpURLConnection request, ICredentials credentials)
-			=> AuthChallengeResponseHelper.Authenticate (AuthenticationType, challenge, request, credentials);
+			// => AuthChallengeResponseHelper.Authenticate (AuthenticationType, challenge, request, credentials);
+			=> null; // TODO I've diverged from the AuthModule* way of doing things with the wrapper message handler... and now I'm not sure if I can implement the Authenticate method
 
 		public Authorization? PreAuthenticate (HttpURLConnection request, ICredentials credentials)
-			=> AuthChallengeResponseHelper.Authenticate (AuthenticationType, challenge, request, credentials);
+			=> null;
 	}
 }

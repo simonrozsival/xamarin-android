@@ -46,7 +46,7 @@ namespace Xamarin.Android.Net
 	/// contain all the authentication information gathered from the server. The application must then fill in the blanks (i.e. the credentials) and re-send
 	/// the request configured to perform pre-authentication. The reason for this manual process is that the underlying Java HTTP client API supports only a
 	/// single, VM-wide, authentication handler which cannot be configured to handle credentials for several requests. AndroidMessageHandler, therefore, implements
-	/// the authentication in managed .NET code. Message handler supports both Basic and Digest authentication. If an authentication scheme that's not supported
+	/// the authentication in managed .NET code. Message handler supports Basic, Digest, NTLM, and Negotiate authentication. If an authentication scheme that's not supported
 	/// by AndroidMessageHandler is requested by the server, the application can provide its own authentication module (<see cref="AuthenticationData"/>,
 	/// <see cref="PreAuthenticationData"/>) to handle the protocol authorization.</para>
 	/// <para>AndroidMessageHandler also supports requests to servers with "invalid" (e.g. self-signed) SSL certificates. Since this process is a bit convoluted using
@@ -618,21 +618,21 @@ namespace Xamarin.Android.Net
 					ret.RequestedAuthentication = RequestedAuthentication;
 
 					// TODO is this a good idea or not?
-					if (AuthChallengeResponseHelper.TryGetSupportedAuth(request.RequestUri, RequestedAuthentication, out AuthenticationData? authData))
-					{
-						// I hate this - there's no locking or whatever, multiple different requests can access
-						// the same state. Well I can't put it into the redirect state...
-						// ... unless I modify the redirect state and put it into the redirect state.
-						// Would that be such a dramatic change?
-						PreAuthenticate = true;
-						PreAuthenticationData = supportedAuth;
+					// if (NTAuthenticationHelper.TryGetSupportedAuth(request.RequestUri, RequestedAuthentication, Proxy?.Credentials, Credentials, out AuthenticationData? authData))
+					// {
+					// 	// I hate this - there's no locking or whatever, multiple different requests can access
+					// 	// the same state. Well I can't put it into the redirect state...
+					// 	// ... unless I modify the redirect state and put it into the redirect state.
+					// 	// Would that be such a dramatic change?
+					// 	PreAuthenticate = true;
+					// 	PreAuthenticationData = supportedAuth;
 
-						if (Logger.LogNet)
-							Logger.Log (LogLevel.Info, LOG_APP, $"Repeat the request with authentication scheme ${supportedAuth.Scheme}");
+					// 	if (Logger.LogNet)
+					// 		Logger.Log (LogLevel.Info, LOG_APP, $"Repeat the request with authentication scheme ${supportedAuth.Scheme}");
 
-						// TODO increase redirect counter or not?
-						return null;
-					}
+					// 	// TODO increase redirect counter or not?
+					// 	return null;
+					// }
 
 					return ret;
 			}
@@ -816,7 +816,7 @@ namespace Xamarin.Android.Net
 			if (String.Compare ("digest", scheme, StringComparison.OrdinalIgnoreCase) == 0)
 				return AuthenticationScheme.Digest;
 			if (String.Compare ("NTLM", scheme, StringComparison.OrdinalIgnoreCase) == 0)
-				return AuthenticationScheme.NTLM;
+				return AuthenticationScheme.Ntlm;
 			if (String.Compare ("Negotiate", scheme, StringComparison.OrdinalIgnoreCase) == 0)
 				return AuthenticationScheme.Negotiate;
 

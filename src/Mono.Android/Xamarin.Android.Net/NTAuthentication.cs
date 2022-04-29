@@ -1,11 +1,13 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Reflection;
+using System.Runtime;
 using System.Security.Authentication.ExtendedProtection;
 
 namespace Xamarin.Android.Net
 {
-	internal sealed class NTAuthenticationProxy
+	internal sealed class NTAuthentication
 	{
 		internal enum ContextFlagsPal
 		{
@@ -39,26 +41,25 @@ namespace Xamarin.Android.Net
 		private const BindingFlags InstanceBindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
 		private static Lazy<Type> s_NTAuthenticationType = new Lazy<Type>(() => FindType(TypeName, AssemblyName));
-		private static Lazy<ConstructorInfo> s_NTAuthenticationConstructorInfo = new Lazy<ConstructorInfo>(() => GetNTAuthenticationConstructor());
 		private static Lazy<PropertyInfo> s_IsCompletedPropertyInfo = new Lazy<PropertyInfo>(() => GetProperty("IsCompleted"));
 		private static Lazy<MethodInfo> s_GetOutgoingBlobMethodInfo = new Lazy<MethodInfo>(() => GetMethod("GetOutgoingBlob"));
 		private static Lazy<MethodInfo> s_CloseContextMethodInfo = new Lazy<MethodInfo>(() => GetMethod("CloseContext"));
 
 		private static Type FindType(string typeName, string assemblyName)
-			=> Type.GetType($"{typeName}, {assemblyName}", throwOnError: true)!; // TODO really throw? are we that confident in the reflection?
+			=> Type.GetType($"{typeName}, {assemblyName}", throwOnError: true)!; // TODO really throw? is there some better fallback?
 
-		private static ConstructorInfo GetNTAuthenticationConstructor()
-			=> s_NTAuthenticationType.Value.GetConstructor(
-				InstanceBindingFlags,
-				new[]
-				{
-					typeof(bool),
-					typeof(string),
-					typeof(NetworkCredential),
-					typeof(string),
-					FindType(ContextFlagsPalTypeName, AssemblyName),
-					typeof(ChannelBinding)
-				}) ?? throw new Exception($"Type {TypeName} is missing constructor"); // TODO don't use Exception
+		// private static ConstructorInfo GetNTAuthenticationConstructor()
+		// 	=> s_NTAuthenticationType.Value.GetConstructor(
+		// 		InstanceBindingFlags,
+		// 		new[]
+		// 		{
+		// 			typeof(bool),
+		// 			typeof(string),
+		// 			typeof(NetworkCredential),
+		// 			typeof(string),
+		// 			FindType(ContextFlagsPalTypeName, AssemblyName),
+		// 			typeof(ChannelBinding)
+		// 		}) ?? throw new Exception($"Type {TypeName} is missing constructor"); // TODO don't use Exception
 
 		private static PropertyInfo GetProperty(string name)
 			=> s_NTAuthenticationType.Value.GetProperty(name, InstanceBindingFlags) ?? throw new Exception($"Type {TypeName} is missing property {name}"); // TODO don't use Exception
@@ -68,10 +69,11 @@ namespace Xamarin.Android.Net
 
 		private object _instance;
 
+		// TODO fix the dynamic dependency
 		[DynamicDependency("#ctor(System.String,System.Net.NetworkCredential)", TypeName, AssemblyName)]
-		internal NTAuthentication(bool isServer, string package, NetworkCredential credential, string? spn, ContextFlagsPal requestedContextFlags, ChannelBinding? channelBinding)
+		internal NTAuthentication (bool isServer, string package, NetworkCredential credential, string? spn, ContextFlagsPal requestedContextFlags, ChannelBinding? channelBinding)
 		{
-			_instance = s_NTAuthenticationConstructorInfo.Value.Invoke(new object?[] { isServer, package, credential, spn, (int)requestedContextFlags, channelBinding });
+			_instance = Activator.CreateInstance(s_NTAuthenticationType.Value, new object?[] { isServer, package, credential, spn, (int)requestedContextFlags, channelBinding });
 		}
 
 		public bool IsCompleted

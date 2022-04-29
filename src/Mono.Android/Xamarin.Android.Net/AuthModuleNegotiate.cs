@@ -13,9 +13,10 @@ namespace Xamarin.Android.Net
 		public bool CanPreAuthenticate { get; } = true;
 
 		public Authorization? Authenticate (string challenge, HttpURLConnection request, ICredentials credentials)
-			=> AuthChallengeResponseHelper.Authenticate (AuthenticationType, challenge, request, credentials);
+			// => AuthChallengeResponseHelper.Authenticate (AuthenticationType, challenge, request, credentials);
+			=> null;
 
 		public Authorization? PreAuthenticate (HttpURLConnection request, ICredentials credentials)
-			=> AuthChallengeResponseHelper.Authenticate (AuthenticationType, challenge, request, credentials);
+			=> null;
 	}
 }
