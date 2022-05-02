@@ -46,7 +46,7 @@ namespace Xamarin.Android.Net
 	/// contain all the authentication information gathered from the server. The application must then fill in the blanks (i.e. the credentials) and re-send
 	/// the request configured to perform pre-authentication. The reason for this manual process is that the underlying Java HTTP client API supports only a
 	/// single, VM-wide, authentication handler which cannot be configured to handle credentials for several requests. AndroidMessageHandler, therefore, implements
-	/// the authentication in managed .NET code. Message handler supports Basic, Digest, NTLM, and Negotiate authentication. If an authentication scheme that's not supported
+	/// the authentication in managed .NET code. Message handler supports Basic and Digest authentication. If an authentication scheme that's not supported
 	/// by AndroidMessageHandler is requested by the server, the application can provide its own authentication module (<see cref="AuthenticationData"/>,
 	/// <see cref="PreAuthenticationData"/>) to handle the protocol authorization.</para>
 	/// <para>AndroidMessageHandler also supports requests to servers with "invalid" (e.g. self-signed) SSL certificates. Since this process is a bit convoluted using
@@ -334,6 +334,17 @@ namespace Xamarin.Android.Net
 		/// <param name="request">Request provided by <see cref="System.Net.Http.HttpClient"/></param>
 		/// <param name="cancellationToken">Cancellation token.</param>
 		protected override async Task <HttpResponseMessage> SendAsync (HttpRequestMessage request, CancellationToken cancellationToken)
+		{
+			var response = await DoSendAsync (request, cancellationToken);
+
+			if (RequestNeedsAuthorization && NTAuthenticationHelper.TryGetSupportedAuthMethod (this, request, out var auth, out var credentials)) {
+				response = await NTAuthenticationHelper.SendAsync (this, request, auth, credentials, cancellationToken);
+			}
+
+			return response;
+		}
+
+		internal async Task <HttpResponseMessage> DoSendAsync (HttpRequestMessage request, CancellationToken cancellationToken)
 		{
 			AssertSelf ();
 			if (request == null)
