@@ -12,6 +12,8 @@ namespace Xamarin.Android.Net
 {
 	internal static class NTAuthenticationHelper
 	{
+		private const int MaxRequests = 4;
+
 		internal static bool TryGetSupportedAuthMethod (
 			AndroidMessageHandler handler,
 			HttpRequestMessage request,
@@ -20,7 +22,7 @@ namespace Xamarin.Android.Net
 		{
 			IEnumerable<AuthenticationData> requestedAuthentication = handler.RequestedAuthentication ?? Enumerable.Empty<AuthenticationData> ();
 			foreach (var auth in requestedAuthentication) {
-				if (TryGetNTAuthType (auth, out var authType)) {
+				if (TryGetSupportedAuthType (auth, out var authType)) {
 					var credentials = auth.UseProxyAuthentication ? handler.Proxy?.Credentials : handler.Credentials;
 					suitableCredentials = credentials?.GetCredential (request.RequestUri, authType);
 
@@ -43,44 +45,49 @@ namespace Xamarin.Android.Net
 			NetworkCredential credentials,
 			CancellationToken cancellationToken)
 		{
-			var authType = GetNTAuthType (auth);
+			var authType = GetSupportedAuthType (auth);
 			var authContext = InitializeAuthContext (authType, credentials);
+
+			// we need to make sure that the handler doesn't override the authorization header
+			// with the user defined pre-authentication data
 			var originalPreAuthenticate = handler.PreAuthenticate;
 			handler.PreAuthenticate = false;
 
 			try {
 				string? challenge = null;
+				int requestCounter = 0;
 
-				// TODO should there be a limit to how many loops are acceptable here to prevent infinite loop?
 				while (true) {
+					var headerValue = new AuthenticationHeaderValue (authType, authContext.GetOutgoingBlob (challenge));
 					if (auth.UseProxyAuthentication) {
-						request.Headers.ProxyAuthorization = new AuthenticationHeaderValue (authType, authContext.GetOutgoingBlob (challenge));
+						request.Headers.ProxyAuthorization = headerValue;
 					} else {
-						request.Headers.Authorization = new AuthenticationHeaderValue (authType, authContext.GetOutgoingBlob (challenge));
+						request.Headers.Authorization = headerValue;
 					}
 
 					var response = await handler.DoSendAsync (request, cancellationToken);
 
-					// if the server closes the connection we need to start again
-					// TODO is this necessary or just give up?
+					// we need to drain the content otherwise the next request
+					// won't reuse the same TCP socket and persistent auth won't work
+					// TODO can I avoid this somehow and achieve the same result?
+					await response.Content.LoadIntoBufferAsync ();
+
+					if (++requestCounter >= MaxRequests) {
+						return response;
+					}
+
+					// if the server closes the connection we need to start over again
 					if (response.Headers.ConnectionClose.GetValueOrDefault ()) {
 						challenge = null;
 						continue;
 					}
 
-					var authenticationHeaderValues = auth.UseProxyAuthentication ? response.Headers.ProxyAuthenticate : response.Headers.WwwAuthenticate;
-					challenge = authenticationHeaderValues?.FirstOrDefault (headerValue => headerValue.Scheme == authType)?.Parameter;
+					var responseHeaderValues = auth.UseProxyAuthentication ? response.Headers.ProxyAuthenticate : response.Headers.WwwAuthenticate;
+					challenge = responseHeaderValues?.FirstOrDefault (headerValue => headerValue.Scheme == authType)?.Parameter;
 
 					if (response.StatusCode != HttpStatusCode.Unauthorized || authContext.IsCompleted || challenge is null) {
 						return response;
 					}
-
-					// we need to drain the content otherwise the next request
-					// won't reuse the same TCP socket and persistent auth won't work
-					// TODO max buffer size?
-					// TODO timeout?
-					// TODO cancellation token? e.g., via .WaitAsync (cancellationToken);
-					await response.Content.LoadIntoBufferAsync ();
 				}
 			} finally {
 				handler.PreAuthenticate = originalPreAuthenticate;
@@ -94,25 +101,23 @@ namespace Xamarin.Android.Net
 				isServer: false,
 				authType,
 				credentials,
-
-				// TODO
-				spn: null,
-				requestedContextFlags: 0,
-				channelBinding: null
+				spn: null, // TODO
+				requestedContextFlags: 0, // TODO
+				channelBinding: null // TODO
 			);
 
 			return authContext;
 		}
 
-		private static string GetNTAuthType (AuthenticationData auth) {
-			if (!TryGetNTAuthType (auth, out var authType)) {
-				throw new InvalidOperationException ($"Authenticaton scheme {authType} is not supported.");
+		private static string GetSupportedAuthType (AuthenticationData auth) {
+			if (!TryGetSupportedAuthType (auth, out var authType)) {
+				throw new InvalidOperationException ($"Authenticaton scheme {authType} is not supported by NTAuthenticationHelper.");
 			}
 
 			return authType;
 		}
 
-		private static bool TryGetNTAuthType (AuthenticationData auth, out string authType) {
+		private static bool TryGetSupportedAuthType (AuthenticationData auth, out string authType) {
 			var spaceIndex = auth.Challenge.IndexOf(' ');
 			authType = spaceIndex == -1 ? auth.Challenge : auth.Substring(0, spaceIndex);
 
