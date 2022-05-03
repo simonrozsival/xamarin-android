@@ -20,8 +20,7 @@ namespace Xamarin.Android.Net
 		{
 			IEnumerable<AuthenticationData> requestedAuthentication = handler.RequestedAuthentication ?? Enumerable.Empty<AuthenticationData> ();
 			foreach (var auth in requestedAuthentication) {
-				if (auth.Scheme == AuthenticationScheme.Ntlm || auth.Scheme == AuthenticationScheme.Negotiate) {
-					var authType = auth.Scheme.ToString ();
+				if (TryGetNTAuthType (auth, out var authType)) {
 					var credentials = auth.UseProxyAuthentication ? handler.Proxy?.Credentials : handler.Credentials;
 					suitableCredentials = credentials?.GetCredential (request.RequestUri, authType);
 
@@ -44,10 +43,9 @@ namespace Xamarin.Android.Net
 			NetworkCredential credentials,
 			CancellationToken cancellationToken)
 		{
-			var authType = auth.Scheme.ToString ();
+			var authType = GetNTAuthType (auth);
 			var authContext = InitializeAuthContext (authType, credentials);
 			var originalPreAuthenticate = handler.PreAuthenticate;
-			var originalPreAuthenticationData = handler.PreAuthenticationData;
 
 			try {
 				string? challenge = null;
@@ -85,7 +83,6 @@ namespace Xamarin.Android.Net
 				}
 			} finally {
 				handler.PreAuthenticate = originalPreAuthenticate;
-				handler.PreAuthenticationData = originalPreAuthenticationData;
 				authContext.CloseContext ();
 			}
 		}
@@ -104,6 +101,22 @@ namespace Xamarin.Android.Net
 			);
 
 			return authContext;
+		}
+
+		private static string GetNTAuthType (AuthenticationData auth) {
+			if (!TryGetNTAuthType (auth, out var authType)) {
+				throw new InvalidOperationException ($"Authenticaton scheme {authType} is not supported.");
+			}
+
+			return authType;
+		}
+
+		private static bool TryGetNTAuthType (AuthenticationData auth, out string authType) {
+			var spaceIndex = auth.Challenge.IndexOf(' ');
+			authType = spaceIndex == -1 ? auth.Challenge : auth.Substring(0, spaceIndex);
+
+			return authType.Equals("NTLM", StringComparison.OrdinalIgnoreCase) ||
+				authType.Equals("Negotiate", StringComparison.OrdinalIgnoreCase));
 		}
 	}
 }

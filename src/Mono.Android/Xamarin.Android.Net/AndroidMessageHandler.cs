@@ -642,23 +642,6 @@ namespace Xamarin.Android.Net
 
 					ret.RequestedAuthentication = RequestedAuthentication;
 
-					// TODO is this a good idea or not?
-					// if (NTAuthenticationHelper.TryGetSupportedAuth(request.RequestUri, RequestedAuthentication, Proxy?.Credentials, Credentials, out AuthenticationData? authData))
-					// {
-					// 	// I hate this - there's no locking or whatever, multiple different requests can access
-					// 	// the same state. Well I can't put it into the redirect state...
-					// 	// ... unless I modify the redirect state and put it into the redirect state.
-					// 	// Would that be such a dramatic change?
-					// 	PreAuthenticate = true;
-					// 	PreAuthenticationData = supportedAuth;
-
-					// 	if (Logger.LogNet)
-					// 		Logger.Log (LogLevel.Info, LOG_APP, $"Repeat the request with authentication scheme ${supportedAuth.Scheme}");
-
-					// 	// TODO increase redirect counter or not?
-					// 	return null;
-					// }
-
 					return ret;
 			}
 
@@ -840,10 +823,6 @@ namespace Xamarin.Android.Net
 				return AuthenticationScheme.Basic;
 			if (String.Compare ("digest", scheme, StringComparison.OrdinalIgnoreCase) == 0)
 				return AuthenticationScheme.Digest;
-			if (String.Compare ("NTLM", scheme, StringComparison.OrdinalIgnoreCase) == 0)
-				return AuthenticationScheme.Ntlm;
-			if (String.Compare ("Negotiate", scheme, StringComparison.OrdinalIgnoreCase) == 0)
-				return AuthenticationScheme.Negotiate;
 
 			return AuthenticationScheme.Unsupported;
 		}

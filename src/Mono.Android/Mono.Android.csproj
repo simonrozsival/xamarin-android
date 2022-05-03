@@ -366,8 +366,6 @@
     <Compile Include="Xamarin.Android.Net\AuthenticationScheme.cs" />
     <Compile Include="Xamarin.Android.Net\AuthModuleBasic.cs" />
     <Compile Include="Xamarin.Android.Net\AuthModuleDigest.cs" />
-    <Compile Include="Xamarin.Android.Net\AuthModuleNegotiate.cs" />
-    <Compile Include="Xamarin.Android.Net\AuthModuleNtlm.cs" />
     <Compile Include="Xamarin.Android.Net\IAndroidAuthenticationModule.cs" />
     <Compile Include="Xamarin.Android.Net\NTAuthentication.cs" />
     <Compile Include="Xamarin.Android.Net\NTAuthenticationHelper.cs" />
