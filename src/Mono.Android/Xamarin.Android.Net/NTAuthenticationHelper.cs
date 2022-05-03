@@ -118,11 +118,11 @@ namespace Xamarin.Android.Net
 		}
 
 		private static bool TryGetSupportedAuthType (AuthenticationData auth, out string authType) {
-			var spaceIndex = auth.Challenge.IndexOf(' ');
-			authType = spaceIndex == -1 ? auth.Challenge : auth.Substring(0, spaceIndex);
+			var spaceIndex = auth.Challenge.IndexOf (' ');
+			authType = spaceIndex == -1 ? auth.Challenge : auth.Substring (0, spaceIndex);
 
-			return authType.Equals("NTLM", StringComparison.OrdinalIgnoreCase) ||
-				authType.Equals("Negotiate", StringComparison.OrdinalIgnoreCase));
+			return authType.Equals ("NTLM", StringComparison.OrdinalIgnoreCase) ||
+				authType.Equals ("Negotiate", StringComparison.OrdinalIgnoreCase));
 		}
 	}
 }
