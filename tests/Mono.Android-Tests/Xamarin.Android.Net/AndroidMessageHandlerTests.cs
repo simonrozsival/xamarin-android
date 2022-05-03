@@ -95,5 +95,60 @@ namespace Xamarin.Android.NetTests
 			Assert.IsTrue (callbackHasBeenCalled, "custom validation callback hasn't been called");
 			Assert.IsNull (exception, $"an exception was thrown: {exception}");
 		}
+
+		// TODO this is just temporary - we need our own testing server
+		private static readonly Uri uri = new Uri ("http://emclientntlm.westus.cloudapp.azure.com");
+		private static readonly NetworkCredential credentials = new NetworkCredential ("TESTUSER", "grundlE!12345", "emclientntlm");
+
+		[Test]
+		public async Task NTAuthentication_RequestsWithoutCredentialsFail ()
+		{
+			var handler = new AndroidMessageHandler { UseProxy = false, Credentials = null };
+			var client = new HttpClient (handler);
+
+			var response = await client.GetAsync (uri);
+
+			Assert.Equals (response.StatusCode, HttpStatusCode.Unauthorized);
+		}
+
+		[Test, TestCaseSource ("NTAuthenticationAuthTypes")]
+		public async Task NTAuthentication_RequestsWithCredentialsSucceed (string authType)
+		{
+			var handler = new AndroidMessageHandler { UseProxy = false, Credentials = CreateCredentials (authType) };
+			var client = new HttpClient (handler);
+
+			var response = await client.GetAsync (uri);
+
+			Assert.IsTrue (response.IsSuccessStatusCode);
+		}
+
+		[Test, TestCaseSource ("NTAuthenticationAuthTypes")]
+		public async Task NTAuthentication_RequestsDoNotNeedToReauthenticateForEachRequest (string authType)
+		{
+			var handler = new AndroidMessageHandler { UseProxy = false, Credentials = CreateCredentials (authType) };
+			var client = new HttpClient (handler);
+
+			var responseA = await client.GetAsync (uri);
+			Assert.IsTrue (responseA.IsSuccessStatusCode);
+
+			// by removing credentials re-authentication is now not possible
+			handler.Credentials = null;
+
+			var responseB = await client.GetAsync (uri);
+			Assert.IsTrue (responseB.IsSuccessStatusCode);
+		}
+
+		private static IEnumerable <TestCaseData> NTAuthenticationAuthTypes ()
+		{
+			yield return new TestCaseData ("NTLM");
+			yield return new TestCaseData ("Negotiate");
+		}
+
+		private static ICredentials CreateCredentials (string authType)
+		{
+			var creds = new CredentialCache ();
+			creds.Add (uri, authType, credentials);
+			return creds;
+		}
 	}
 }
