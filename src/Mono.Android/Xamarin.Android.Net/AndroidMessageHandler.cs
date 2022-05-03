@@ -141,9 +141,15 @@ namespace Xamarin.Android.Net
 
 		public bool UseProxy { get; set; } = true;
 
-		public IWebProxy? Proxy { get; set; }
+		// TODO this is just an experiment for the time being
+		// I'm trying to allow NTAuthentication related stuff to be easily trimmable
+		private IWebProxy? _proxy = null;
+		private ICredentials? _credentials = null;
+		private bool CouldHaveNTCredentials => _proxy != null || _credentials != null; // TODO do I need those fields, wouldn't the properties be enough?
 
-		public ICredentials? Credentials { get; set; }
+		public IWebProxy? Proxy { get => _proxy; set => _proxy = value; }
+
+		public ICredentials? Credentials { get => _credentials; set => _credentials = value; }
 
 		public bool AllowAutoRedirect { get; set; } = true;
 
@@ -337,7 +343,7 @@ namespace Xamarin.Android.Net
 		{
 			var response = await DoSendAsync (request, cancellationToken);
 
-			if (RequestNeedsAuthorization && NTAuthenticationHelper.TryGetSupportedAuthMethod (this, request, out var auth, out var credentials)) {
+			if (CouldHaveNTCredentials && RequestNeedsAuthorization && NTAuthenticationHelper.TryGetSupportedAuthMethod (this, request, out var auth, out var credentials)) {
 				response = await NTAuthenticationHelper.SendAsync (this, request, auth, credentials, cancellationToken);
 			}
 
