@@ -46,6 +46,7 @@ namespace Xamarin.Android.Net
 			var authType = GetNTAuthType (auth);
 			var authContext = InitializeAuthContext (authType, credentials);
 			var originalPreAuthenticate = handler.PreAuthenticate;
+			handler.PreAuthenticate = false;
 
 			try {
 				string? challenge = null;
