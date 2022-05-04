@@ -22,7 +22,7 @@ namespace Xamarin.Android.Net
 		{
 			IEnumerable<AuthenticationData> requestedAuthentication = handler.RequestedAuthentication ?? Enumerable.Empty<AuthenticationData> ();
 			foreach (var auth in requestedAuthentication) {
-				if (TryGetSupportedAuthType (auth, out var authType)) {
+				if (TryGetSupportedAuthType (auth.Challenge, out var authType)) {
 					var credentials = auth.UseProxyAuthentication ? handler.Proxy?.Credentials : handler.Credentials;
 					suitableCredentials = credentials?.GetCredential (request.RequestUri, authType);
 
@@ -45,7 +45,7 @@ namespace Xamarin.Android.Net
 			NetworkCredential credentials,
 			CancellationToken cancellationToken)
 		{
-			var authType = GetSupportedAuthType (auth);
+			var authType = GetSupportedAuthType (auth.Challenge);
 			var authContext = InitializeAuthContext (authType, credentials);
 
 			// we need to make sure that the handler doesn't override the authorization header
@@ -109,20 +109,20 @@ namespace Xamarin.Android.Net
 			return authContext;
 		}
 
-		private static string GetSupportedAuthType (AuthenticationData auth) {
-			if (!TryGetSupportedAuthType (auth, out var authType)) {
+		private static string GetSupportedAuthType (string challenge) {
+			if (!TryGetSupportedAuthType (challenge, out var authType)) {
 				throw new InvalidOperationException ($"Authenticaton scheme {authType} is not supported by NTAuthenticationHelper.");
 			}
 
 			return authType;
 		}
 
-		private static bool TryGetSupportedAuthType (AuthenticationData auth, out string authType) {
-			var spaceIndex = auth.Challenge.IndexOf (' ');
-			authType = spaceIndex == -1 ? auth.Challenge : auth.Substring (0, spaceIndex);
+		private static bool TryGetSupportedAuthType (string challenge, out string authType) {
+			var spaceIndex = challenge.IndexOf (' ');
+			authType = spaceIndex == -1 ? challenge : challenge.Substring (0, spaceIndex);
 
 			return authType.Equals ("NTLM", StringComparison.OrdinalIgnoreCase) ||
-				authType.Equals ("Negotiate", StringComparison.OrdinalIgnoreCase));
+				authType.Equals ("Negotiate", StringComparison.OrdinalIgnoreCase);
 		}
 	}
 }

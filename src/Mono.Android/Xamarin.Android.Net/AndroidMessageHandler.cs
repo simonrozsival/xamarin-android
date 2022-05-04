@@ -95,8 +95,6 @@ namespace Xamarin.Android.Net
 		static readonly List <IAndroidAuthenticationModule> authModules = new List <IAndroidAuthenticationModule> {
 			new AuthModuleBasic (),
 			new AuthModuleDigest (),
-			new AuthModuleNtlm (),
-			new AuthModuleNegotiate (),
 		};
 
 		CookieContainer _cookieContainer;
