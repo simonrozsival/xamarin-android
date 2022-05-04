@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Net;
 using System.Net.Http;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
@@ -97,8 +99,8 @@ namespace Xamarin.Android.NetTests
 		}
 
 		// TODO this is just temporary - we need our own testing server
-		private static readonly Uri uri = new Uri ("http://emclientntlm.westus.cloudapp.azure.com");
-		private static readonly NetworkCredential credentials = new NetworkCredential ("TESTUSER", "grundlE!12345", "emclientntlm");
+		private static readonly Uri uri = new Uri ("https://e4cd-2a02-908-3a3-4c40-a580-90ae-6787-6d6d.eu.ngrok.io/secret/data.txt");
+		private static readonly NetworkCredential credentials = new NetworkCredential ("Test", "testtest", "PC");
 
 		[Test]
 		public async Task NTAuthentication_RequestsWithoutCredentialsFail ()
@@ -108,7 +110,8 @@ namespace Xamarin.Android.NetTests
 
 			var response = await client.GetAsync (uri);
 
-			Assert.Equals (response.StatusCode, HttpStatusCode.Unauthorized);
+			Assert.IsFalse (response.IsSuccessStatusCode);
+			Assert.AreEqual (HttpStatusCode.Unauthorized, response.StatusCode);
 		}
 
 		[Test, TestCaseSource ("NTAuthenticationAuthTypes")]
@@ -123,19 +126,19 @@ namespace Xamarin.Android.NetTests
 		}
 
 		[Test, TestCaseSource ("NTAuthenticationAuthTypes")]
-		public async Task NTAuthentication_RequestsDoNotNeedToReauthenticateForEachRequest (string authType)
+		public async Task NTAuthentication_RequestsDoNotNeedToReauthenticateForFollowingRequests (string authType)
 		{
 			var handler = new AndroidMessageHandler { UseProxy = false, Credentials = CreateCredentials (authType) };
 			var client = new HttpClient (handler);
 
 			var responseA = await client.GetAsync (uri);
-			Assert.IsTrue (responseA.IsSuccessStatusCode);
-
-			// by removing credentials re-authentication is now not possible
-			handler.Credentials = null;
-
+			handler.Credentials = null; // by removing credentials re-authentication is not possible from now on
 			var responseB = await client.GetAsync (uri);
+			var responseC = await client.GetAsync (uri);
+
+			Assert.IsTrue (responseA.IsSuccessStatusCode);
 			Assert.IsTrue (responseB.IsSuccessStatusCode);
+			Assert.IsTrue (responseC.IsSuccessStatusCode);
 		}
 
 		private static IEnumerable <TestCaseData> NTAuthenticationAuthTypes ()
