@@ -35,10 +35,13 @@ namespace Xamarin.Android.Net
 			UnverifiedTargetName = 0x20000000,
 		}
 
-		private const string AssemblyName = "System.Net.Http";
-		private const string TypeName = "System.Net.NTAuthentication";
-		private const string ContextFlagsPalTypeName = "System.Net.ContextFlagsPal";
-		private const BindingFlags InstanceBindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+        //private const string AssemblyName = "System.Net.Http";
+        //private const string TypeName = "System.Net.NTAuthentication";
+        //private const string ContextFlagsPalTypeName = "System.Net.ContextFlagsPal";
+        private const string AssemblyName = "Mono.Android";
+        private const string TypeName = "Xamarin.Android.Net.TEMPORARY.NTAuthentication";
+        private const string ContextFlagsPalTypeName = "Xamarin.Android.Net.TEMPORARY.ContextFlagsPal";
+        private const BindingFlags InstanceBindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
 		private static Lazy<Type> s_NTAuthenticationType = new Lazy<Type>(() => FindType(TypeName, AssemblyName));
 		private static Lazy<PropertyInfo> s_IsCompletedPropertyInfo = new Lazy<PropertyInfo>(() => GetProperty("IsCompleted"));

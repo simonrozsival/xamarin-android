@@ -341,9 +341,11 @@ namespace Xamarin.Android.Net
 		{
 			var response = await DoSendAsync (request, cancellationToken);
 
+#if !MONOANDROID1_0
 			if (CouldHaveNTCredentials && RequestNeedsAuthorization && NTAuthenticationHelper.TryGetSupportedAuthMethod (this, request, out var auth, out var credentials)) {
 				response = await NTAuthenticationHelper.SendAsync (this, request, auth, credentials, cancellationToken);
 			}
+#endif
 
 			return response;
 		}

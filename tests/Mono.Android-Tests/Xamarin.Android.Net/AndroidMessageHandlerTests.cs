@@ -144,7 +144,7 @@ namespace Xamarin.Android.NetTests
 		private static IEnumerable <TestCaseData> NTAuthenticationAuthTypes ()
 		{
 			yield return new TestCaseData ("NTLM");
-			yield return new TestCaseData ("Negotiate");
+			// yield return new TestCaseData ("Negotiate"); // TODO Negotiate is disabled for now (it'll be implemented in the .NET 7 runtime)
 		}
 
 		private static ICredentials CreateCredentials (string authType)
