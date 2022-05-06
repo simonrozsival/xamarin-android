@@ -35,62 +35,68 @@ namespace Xamarin.Android.Net
 			UnverifiedTargetName = 0x20000000,
 		}
 
-        //private const string AssemblyName = "System.Net.Http";
-        //private const string TypeName = "System.Net.NTAuthentication";
-        //private const string ContextFlagsPalTypeName = "System.Net.ContextFlagsPal";
-        private const string AssemblyName = "Mono.Android";
-        private const string TypeName = "Xamarin.Android.Net.TEMPORARY.NTAuthentication";
-        private const string ContextFlagsPalTypeName = "Xamarin.Android.Net.TEMPORARY.ContextFlagsPal";
-        private const BindingFlags InstanceBindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+		//private const string AssemblyName = "System.Net.Http";
+		//private const string TypeName = "System.Net.NTAuthentication";
+		//private const string ContextFlagsPalTypeName = "System.Net.ContextFlagsPal";
+		private const string AssemblyName = "Mono.Android";
+		private const string TypeName = "Xamarin.Android.Net.TEMPORARY.NTAuthentication";
+		private const string ContextFlagsPalTypeName = "Xamarin.Android.Net.TEMPORARY.ContextFlagsPal";
+
+		private const string IsCompletedPropertyName = "IsCompleted";
+		private const string GetOutgoingBlobMethodName = "GetOutgoingBlob";
+		private const string CloseContextMethodName = "CloseContext";
+
+		private const BindingFlags InstanceBindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
 		private static Lazy<Type> s_NTAuthenticationType = new Lazy<Type>(() => FindType(TypeName, AssemblyName));
-		private static Lazy<PropertyInfo> s_IsCompletedPropertyInfo = new Lazy<PropertyInfo>(() => GetProperty("IsCompleted"));
-		private static Lazy<MethodInfo> s_GetOutgoingBlobMethodInfo = new Lazy<MethodInfo>(() => GetMethod("GetOutgoingBlob"));
-		private static Lazy<MethodInfo> s_CloseContextMethodInfo = new Lazy<MethodInfo>(() => GetMethod("CloseContext"));
+		private static Lazy<ConstructorInfo> s_NTAuthenticationConstructorInfo = new Lazy<ConstructorInfo>(() => GetNTAuthenticationConstructor());
+		private static Lazy<PropertyInfo> s_IsCompletedPropertyInfo = new Lazy<PropertyInfo>(() => GetProperty(IsCompletedPropertyName));
+		private static Lazy<MethodInfo> s_GetOutgoingBlobMethodInfo = new Lazy<MethodInfo>(() => GetMethod(GetOutgoingBlobMethodName));
+		private static Lazy<MethodInfo> s_CloseContextMethodInfo = new Lazy<MethodInfo>(() => GetMethod(CloseContextMethodName));
 
 		private static Type FindType(string typeName, string assemblyName)
 			=> Type.GetType($"{typeName}, {assemblyName}", throwOnError: true)!; // TODO really throw? is there some better fallback?
 
-		// private static ConstructorInfo GetNTAuthenticationConstructor()
-		// 	=> s_NTAuthenticationType.Value.GetConstructor(
-		// 		InstanceBindingFlags,
-		// 		new[]
-		// 		{
-		// 			typeof(bool),
-		// 			typeof(string),
-		// 			typeof(NetworkCredential),
-		// 			typeof(string),
-		// 			FindType(ContextFlagsPalTypeName, AssemblyName),
-		// 			typeof(ChannelBinding)
-		// 		}) ?? throw new Exception($"Type {TypeName} is missing constructor"); // TODO don't use Exception
+		private static ConstructorInfo GetNTAuthenticationConstructor()
+			=> s_NTAuthenticationType.Value.GetConstructor(
+				InstanceBindingFlags,
+				new[]
+				{
+					typeof(bool),
+					typeof(string),
+					typeof(NetworkCredential),
+					typeof(string),
+					FindType(ContextFlagsPalTypeName, AssemblyName),
+					typeof(ChannelBinding)
+				}) ?? throw new MissingMemberException(TypeName, ConstructorInfo.ConstructorName);
 
 		private static PropertyInfo GetProperty(string name)
-			=> s_NTAuthenticationType.Value.GetProperty(name, InstanceBindingFlags) ?? throw new Exception($"Type {TypeName} is missing property {name}"); // TODO don't use Exception
+			=> s_NTAuthenticationType.Value.GetProperty(name, InstanceBindingFlags) ?? throw new MissingMemberException(TypeName, name);
 
 		private static MethodInfo GetMethod(string name)
-			=> s_NTAuthenticationType.Value.GetMethod(name, InstanceBindingFlags) ?? throw new Exception($"Type {TypeName} is missing method {name}"); // TODO don't use Exception
+			=> s_NTAuthenticationType.Value.GetMethod(name, InstanceBindingFlags) ?? throw new MissingMemberException(TypeName, name);
 
 		private object _instance;
 
-		// TODO fix the dynamic dependency
-		[DynamicDependency("#ctor(System.String,System.Net.NetworkCredential)", TypeName, AssemblyName)]
-		internal NTAuthentication (bool isServer, string package, NetworkCredential credential, string? spn, ContextFlagsPal requestedContextFlags, ChannelBinding? channelBinding)
+		[DynamicDependency("#ctor(System.Boolean,System.String,System.Net.NetworkCredential,System.String,System.Net.ContextFlagsPal,System.Security.Authentication.ExtendedProtection.ChannelBinding)", TypeName, AssemblyName)]
+		internal NTAuthentication (bool isServer, string package, NetworkCredential credential, string? spn, int requestedContextFlags, ChannelBinding? channelBinding)
 		{
-			_instance = Activator.CreateInstance(s_NTAuthenticationType.Value, new object?[] { isServer, package, credential, spn, (int)requestedContextFlags, channelBinding });
+			var constructorParams = new object?[] { isServer, package, credential, spn, requestedContextFlags, channelBinding };
+			_instance = s_NTAuthenticationConstructorInfo.Value.Invoke(constructorParams);
 		}
 
 		public bool IsCompleted
 			=> GetIsCompleted();
 
-		[DynamicDependency("get_IsCompleted", TypeName, AssemblyName)]
+		[DynamicDependency($"get_{IsCompletedPropertyName}", TypeName, AssemblyName)]
 		private bool GetIsCompleted()
-			=> (bool)(s_IsCompletedPropertyInfo.Value.GetValue(_instance) ?? throw new Exception("TODO")); // TODO don't use Exception
+			=> (bool)s_IsCompletedPropertyInfo.Value.GetValue(_instance);
 
-		[DynamicDependency("GetOutgoingBlob", TypeName, AssemblyName)]
+		[DynamicDependency(GetOutgoingBlobMethodName, TypeName, AssemblyName)]
 		public string? GetOutgoingBlob(string? incomingBlob)
 			=> (string?)s_GetOutgoingBlobMethodInfo.Value.Invoke(_instance, new object?[] { incomingBlob });
 
-		[DynamicDependency("CloseContext", TypeName, AssemblyName)]
+		[DynamicDependency(CloseContextMethodName, TypeName, AssemblyName)]
 		public void CloseContext()
 			=> s_CloseContextMethodInfo.Value.Invoke(_instance, null);
 	}
