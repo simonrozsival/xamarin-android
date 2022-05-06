@@ -12,7 +12,7 @@ namespace Xamarin.Android.Net
 {
 	internal static class NTAuthenticationHelper
 	{
-		private const int MaxRequests = 4;
+		private const int MaxRequests = 10;
 
 		internal static bool TryGetSupportedAuthMethod (
 			AndroidMessageHandler handler,

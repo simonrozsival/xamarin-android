@@ -9,95 +9,82 @@ namespace Xamarin.Android.Net
 {
 	internal sealed class NTAuthentication
 	{
-		internal enum ContextFlagsPal
+		//const string AssemblyName = "System.Net.Http";
+		//const string TypeName = "System.Net.NTAuthentication";
+		//const string ContextFlagsPalTypeName = "System.Net.ContextFlagsPal";
+
+		const string AssemblyName = "Mono.Android";
+		const string TypeName = "Xamarin.Android.Net.TEMPORARY.NTAuthentication";
+		const string ContextFlagsPalTypeName = "Xamarin.Android.Net.TEMPORARY.ContextFlagsPal";
+
+		const string ConstructorDescription = "#ctor(System.Boolean,System.String,System.Net.NetworkCredential,System.String,System.Net.ContextFlagsPal,System.Security.Authentication.ExtendedProtection.ChannelBinding)";
+		const string IsCompletedPropertyName = "IsCompleted";
+		const string GetOutgoingBlobMethodName = "GetOutgoingBlob";
+		const string CloseContextMethodName = "CloseContext";
+
+		const BindingFlags InstanceBindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+
+		static Lazy<Type> s_NTAuthenticationType = new (() => FindType (TypeName, AssemblyName));
+		static Lazy<ConstructorInfo> s_NTAuthenticationConstructorInfo = new (() => GetNTAuthenticationConstructor ());
+		static Lazy<PropertyInfo> s_IsCompletedPropertyInfo = new (() => GetProperty (IsCompletedPropertyName));
+		static Lazy<MethodInfo> s_GetOutgoingBlobMethodInfo = new (() => GetMethod (GetOutgoingBlobMethodName));
+		static Lazy<MethodInfo> s_CloseContextMethodInfo = new (() => GetMethod (CloseContextMethodName));
+
+		static Type FindType (string typeName, string assemblyName)
+			=> Type.GetType ($"{typeName}, {assemblyName}", throwOnError: true)!;
+
+		static ConstructorInfo GetNTAuthenticationConstructor ()
 		{
-			None = 0,
-			Delegate = 0x00000001,
-			MutualAuth = 0x00000002,
-			ReplayDetect = 0x00000004,
-			SequenceDetect = 0x00000008,
-			Confidentiality = 0x00000010,
-			UseSessionKey = 0x00000020,
-			AllocateMemory = 0x00000100,
-			Connection = 0x00000800,
-			InitExtendedError = 0x00004000,
-			AcceptExtendedError = 0x00008000,
-			InitStream = 0x00008000,
-			AcceptStream = 0x00010000,
-			InitIntegrity = 0x00010000,
-			AcceptIntegrity = 0x00020000,
-			InitManualCredValidation = 0x00080000,
-			InitUseSuppliedCreds = 0x00000080,
-			InitIdentify = 0x00020000,
-			AcceptIdentify = 0x00080000,
-			ProxyBindings = 0x04000000,
-			AllowMissingBindings = 0x10000000,
-			UnverifiedTargetName = 0x20000000,
+			var contextFlagsPalType = FindType (ContextFlagsPalTypeName, AssemblyName);
+			var paramTypes = new[] {
+				typeof (bool),
+				typeof (string),
+				typeof (NetworkCredential),
+				typeof (string),
+				contextFlagsPalType,
+				typeof (ChannelBinding)
+			};
+
+			return s_NTAuthenticationType.Value.GetConstructor (InstanceBindingFlags, paramTypes)
+				?? throw new MissingMemberException (TypeName, ConstructorInfo.ConstructorName);
 		}
 
-		//private const string AssemblyName = "System.Net.Http";
-		//private const string TypeName = "System.Net.NTAuthentication";
-		//private const string ContextFlagsPalTypeName = "System.Net.ContextFlagsPal";
-		private const string AssemblyName = "Mono.Android";
-		private const string TypeName = "Xamarin.Android.Net.TEMPORARY.NTAuthentication";
-		private const string ContextFlagsPalTypeName = "Xamarin.Android.Net.TEMPORARY.ContextFlagsPal";
+		static PropertyInfo GetProperty (string name)
+			=> s_NTAuthenticationType.Value.GetProperty (name, InstanceBindingFlags)
+				?? throw new MissingMemberException (TypeName, name);
 
-		private const string IsCompletedPropertyName = "IsCompleted";
-		private const string GetOutgoingBlobMethodName = "GetOutgoingBlob";
-		private const string CloseContextMethodName = "CloseContext";
+		static MethodInfo GetMethod (string name)
+			=> s_NTAuthenticationType.Value.GetMethod (name, InstanceBindingFlags)
+				?? throw new MissingMemberException (TypeName, name);
 
-		private const BindingFlags InstanceBindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+		object _instance;
 
-		private static Lazy<Type> s_NTAuthenticationType = new Lazy<Type>(() => FindType(TypeName, AssemblyName));
-		private static Lazy<ConstructorInfo> s_NTAuthenticationConstructorInfo = new Lazy<ConstructorInfo>(() => GetNTAuthenticationConstructor());
-		private static Lazy<PropertyInfo> s_IsCompletedPropertyInfo = new Lazy<PropertyInfo>(() => GetProperty(IsCompletedPropertyName));
-		private static Lazy<MethodInfo> s_GetOutgoingBlobMethodInfo = new Lazy<MethodInfo>(() => GetMethod(GetOutgoingBlobMethodName));
-		private static Lazy<MethodInfo> s_CloseContextMethodInfo = new Lazy<MethodInfo>(() => GetMethod(CloseContextMethodName));
-
-		private static Type FindType(string typeName, string assemblyName)
-			=> Type.GetType($"{typeName}, {assemblyName}", throwOnError: true)!; // TODO really throw? is there some better fallback?
-
-		private static ConstructorInfo GetNTAuthenticationConstructor()
-			=> s_NTAuthenticationType.Value.GetConstructor(
-				InstanceBindingFlags,
-				new[]
-				{
-					typeof(bool),
-					typeof(string),
-					typeof(NetworkCredential),
-					typeof(string),
-					FindType(ContextFlagsPalTypeName, AssemblyName),
-					typeof(ChannelBinding)
-				}) ?? throw new MissingMemberException(TypeName, ConstructorInfo.ConstructorName);
-
-		private static PropertyInfo GetProperty(string name)
-			=> s_NTAuthenticationType.Value.GetProperty(name, InstanceBindingFlags) ?? throw new MissingMemberException(TypeName, name);
-
-		private static MethodInfo GetMethod(string name)
-			=> s_NTAuthenticationType.Value.GetMethod(name, InstanceBindingFlags) ?? throw new MissingMemberException(TypeName, name);
-
-		private object _instance;
-
-		[DynamicDependency("#ctor(System.Boolean,System.String,System.Net.NetworkCredential,System.String,System.Net.ContextFlagsPal,System.Security.Authentication.ExtendedProtection.ChannelBinding)", TypeName, AssemblyName)]
-		internal NTAuthentication (bool isServer, string package, NetworkCredential credential, string? spn, int requestedContextFlags, ChannelBinding? channelBinding)
+		[DynamicDependency (ConstructorDescription, TypeName, AssemblyName)]
+		internal NTAuthentication (
+			bool isServer,
+			string package,
+			NetworkCredential credential,
+			string? spn,
+			int requestedContextFlags,
+			ChannelBinding? channelBinding)
 		{
 			var constructorParams = new object?[] { isServer, package, credential, spn, requestedContextFlags, channelBinding };
-			_instance = s_NTAuthenticationConstructorInfo.Value.Invoke(constructorParams);
+			_instance = s_NTAuthenticationConstructorInfo.Value.Invoke (constructorParams);
 		}
 
 		public bool IsCompleted
-			=> GetIsCompleted();
+			=> GetIsCompleted ();
 
-		[DynamicDependency($"get_{IsCompletedPropertyName}", TypeName, AssemblyName)]
-		private bool GetIsCompleted()
-			=> (bool)s_IsCompletedPropertyInfo.Value.GetValue(_instance);
+		[DynamicDependency ($"get_{IsCompletedPropertyName}", TypeName, AssemblyName)]
+		bool GetIsCompleted ()
+			=> (bool)s_IsCompletedPropertyInfo.Value.GetValue (_instance);
 
-		[DynamicDependency(GetOutgoingBlobMethodName, TypeName, AssemblyName)]
-		public string? GetOutgoingBlob(string? incomingBlob)
-			=> (string?)s_GetOutgoingBlobMethodInfo.Value.Invoke(_instance, new object?[] { incomingBlob });
+		[DynamicDependency (GetOutgoingBlobMethodName, TypeName, AssemblyName)]
+		public string? GetOutgoingBlob (string? incomingBlob)
+			=> (string?)s_GetOutgoingBlobMethodInfo.Value.Invoke (_instance, new object?[] { incomingBlob });
 
-		[DynamicDependency(CloseContextMethodName, TypeName, AssemblyName)]
-		public void CloseContext()
-			=> s_CloseContextMethodInfo.Value.Invoke(_instance, null);
+		[DynamicDependency (CloseContextMethodName, TypeName, AssemblyName)]
+		public void CloseContext ()
+			=> s_CloseContextMethodInfo.Value.Invoke (_instance, null);
 	}
 }
