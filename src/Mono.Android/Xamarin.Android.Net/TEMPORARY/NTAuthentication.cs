@@ -14,7 +14,7 @@ using System.Net;
 
 namespace Xamarin.Android.Net.TEMPORARY
 {
-	internal enum ContextFlagsPalPlaceholder
+	internal enum ContextFlagsPal
 	{
 		None = 0,
 		Delegate = 0x00000001,
@@ -267,7 +267,7 @@ namespace Xamarin.Android.Net.TEMPORARY
 			RequestMic = 3
 		}
 
-		internal NTAuthentication(bool isServer, string package, NetworkCredential credential, string? spn, ContextFlagsPalPlaceholder requestedContextFlags, ChannelBinding? channelBinding)
+		internal NTAuthentication(bool isServer, string package, NetworkCredential credential, string? spn, ContextFlagsPal requestedContextFlags, ChannelBinding? channelBinding)
 		{
 			if (package.Equals("NTLM", StringComparison.OrdinalIgnoreCase))
 			{
