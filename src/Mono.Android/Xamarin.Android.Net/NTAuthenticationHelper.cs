@@ -210,7 +210,7 @@ namespace Xamarin.Android.Net
 		{
 			var responseHeaderValues = isProxyAuth ? response.Headers.ProxyAuthenticate : response.Headers.WwwAuthenticate;
 			challenge = responseHeaderValues?.FirstOrDefault (headerValue => headerValue.Scheme == authType)?.Parameter;
-			return string.IsNullOrEmpty (challenge);
+			return !string.IsNullOrEmpty (challenge);
 		}
 
 		static bool IsAuthenticationChallenge (HttpResponseMessage response, bool isProxyAuth)
