@@ -130,7 +130,7 @@ namespace Xamarin.Android.Net
 			var spn = await GetSpn (handler, request, isProxyAuth, cancellationToken);
 			var flags = GetRequestedContextFlags (isProxyAuth);
 			var channelBinding = GetChannelBinding ();
-			return new NTAuthentication (isServer: false, authType, credentials, spn, flags, channelBinding);
+			return new NTAuthenticationProxy (isServer: false, authType, credentials, spn, flags, channelBinding);
 		}
 
 		static async Task<string?> GetSpn (

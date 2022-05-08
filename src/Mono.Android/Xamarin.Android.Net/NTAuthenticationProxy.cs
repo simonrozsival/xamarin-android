@@ -7,7 +7,7 @@ using System.Security.Authentication.ExtendedProtection;
 
 namespace Xamarin.Android.Net
 {
-	internal sealed class NTAuthentication
+	internal sealed class NTAuthenticationProxy
 	{
 		//const string AssemblyName = "System.Net.Http";
 		//const string TypeName = "System.Net.NTAuthentication";
@@ -60,7 +60,7 @@ namespace Xamarin.Android.Net
 		object _instance;
 
 		[DynamicDependency (ConstructorDescription, TypeName, AssemblyName)]
-		internal NTAuthentication (
+		internal NTAuthenticationProxy (
 			bool isServer,
 			string package,
 			NetworkCredential credential,
