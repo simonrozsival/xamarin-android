@@ -50,7 +50,13 @@ namespace Xamarin.Android.Net
 		{
 			var authType = GetSupportedAuthType (auth.Challenge);
 			var isProxyAuth = auth.UseProxyAuthentication;
-			var authContext = await InitializeAuthContext (handler, request, authType, isProxyAuth, credentials, cancellationToken).ConfigureAwait (false);
+			var authContext = new NTAuthenticationProxy (
+				isServer: false,
+				authType,
+				credentials,
+				spn: await GetSpn (handler, request, isProxyAuth, cancellationToken).ConfigureAwait (false),
+				flags: GetRequestedContextFlags (isProxyAuth),
+				channelBinding: null);
 
 			// we need to make sure that the handler doesn't override the authorization header
 			// with the user defined pre-authentication data
@@ -119,19 +125,6 @@ namespace Xamarin.Android.Net
 				authType.Equals ("Negotiate", StringComparison.OrdinalIgnoreCase);
 		}
 
-		static async Task<NTAuthentication> InitializeAuthContext (
-			AndroidMessageHandler handler,
-			HttpRequestMessage request,
-			string authType,
-			bool isProxyAuth,
-			NetworkCredential credentials,
-			CancellationToken cancellationToken)
-		{
-			var spn = await GetSpn (handler, request, isProxyAuth, cancellationToken);
-			var flags = GetRequestedContextFlags (isProxyAuth);
-			return new NTAuthenticationProxy (isServer: false, authType, credentials, spn, flags, channelBinding: null);
-		}
-
 		static async Task<string?> GetSpn (
 			AndroidMessageHandler handler,
 			HttpRequestMessage request,
@@ -150,11 +143,8 @@ namespace Xamarin.Android.Net
 			}
 			else
 			{
-				// TODO if I understand it correctly then the authUri is either the Proxy URI or the destination URI...
-				// and I need to verify that this is the correct way to get it...
-				var authUri = isProxyAuth
-					? handler.Proxy?.GetProxy (request.RequestUri) ?? request.RequestUri!
-					: request.RequestUri!;
+				var requestUri = request.RequestUri!;
+				var git = isProxyAuth ? handler.Proxy?.GetProxy (requestUri) ?? requestUri : requestUri;
 
 				// Need to use FQDN normalized host so that CNAME's are traversed.
 				// Use DNS to do the forward lookup to an A (host) record.
@@ -165,10 +155,6 @@ namespace Xamarin.Android.Net
 				} else {
 					IPHostEntry result = await Dns.GetHostEntryAsync (authUri.IdnHost, cancellationToken).ConfigureAwait (false);
 					hostName = result.HostName;
-				}
-
-				if (!isProxyAuth && !authUri.IsDefaultPort && UsePortInSpn) {
-					hostName = string.Create (null, stackalloc char[128], $"{hostName}:{authUri.Port}");
 				}
 			}
 
@@ -210,9 +196,5 @@ namespace Xamarin.Android.Net
 			=> isProxyAuth
 				? response.StatusCode == HttpStatusCode.ProxyAuthenticationRequired
 				: response.StatusCode == HttpStatusCode.Unauthorized;
-
-		// TODO see AuthenticationHelper.NtAuth.cs
-		static bool UsePortInSpn
-			=> false;
 	}
 }
