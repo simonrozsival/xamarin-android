@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
+using Android.Runtime;
 using Javax.Net.Ssl;
 
 using JavaCertificateException = Java.Security.Cert.CertificateException;
@@ -22,21 +23,21 @@ namespace Xamarin.Android.Net
 			Callback = callback;
 		}
 
-		public ITrustManager[] ReplaceX509TrustManager (ITrustManager[]? trustManagers, HttpRequestMessage requestMessage)
+		public ITrustManager[] ReplaceX509TrustManager (ITrustManager[] trustManagers, HttpRequestMessage requestMessage)
 		{
-			var originalX509TrustManager = FindX509TrustManager(trustManagers);
+			var (originalX509TrustManager, index) = FindX509TrustManager(trustManagers);
 			var trustManagerWithCallback = new TrustManager (originalX509TrustManager, requestMessage, Callback);
-			return ModifyTrustManagersArray (trustManagers, original: originalX509TrustManager, replacement: trustManagerWithCallback);
+			return ModifyTrustManagersArray (trustManagers, index, replacement: trustManagerWithCallback);
 		}
 
 		private sealed class TrustManager : Java.Lang.Object, IX509TrustManager
 		{
-			private readonly IX509TrustManager? _internalTrustManager;
+			private readonly IX509TrustManager _internalTrustManager;
 			private readonly HttpRequestMessage _request;
 			private readonly Func<HttpRequestMessage, X509Certificate2?, X509Chain?, SslPolicyErrors, bool> _serverCertificateCustomValidationCallback;
 
 			public TrustManager (
-				IX509TrustManager? internalTrustManager,
+				IX509TrustManager internalTrustManager,
 				HttpRequestMessage request,
 				Func<HttpRequestMessage, X509Certificate2?, X509Chain?, SslPolicyErrors, bool> serverCertificateCustomValidationCallback)
 			{
@@ -50,7 +51,7 @@ namespace Xamarin.Android.Net
 				var sslPolicyErrors = SslPolicyErrors.None;
 
 				try {
-					_internalTrustManager?.CheckServerTrusted (javaChain, authType);
+					_internalTrustManager.CheckServerTrusted (javaChain, authType);
 				} catch (JavaCertificateException) {
 					sslPolicyErrors |= SslPolicyErrors.RemoteCertificateChainErrors;
 				}
@@ -158,33 +159,35 @@ namespace Xamarin.Android.Net
 			public bool Verify (string? hostname, ISSLSession? session) => true;
 		}
 
-		private static IX509TrustManager? FindX509TrustManager(ITrustManager[]? trustManagers)
+		private static (IX509TrustManager, int) FindX509TrustManager(ITrustManager[] trustManagers)
 		{
-			if (trustManagers is null)
-				return null;
-
-			foreach (var trustManager in trustManagers) {
-				if (trustManager is IX509TrustManager tm)
-					return tm;
+			for (int i = 0; i < trustManagers.Length; i++) {
+				try {
+					var x509TrustManager = trustManagers[i].JavaCast<IX509TrustManagerInvoker> ();
+					if (x509TrustManager is not null)
+					{
+						return (x509TrustManager, i);
+					}
+				} catch (InvalidCastException) {
+					// continue searching
+				} catch (NotSupportedException) {
+					// continue searching
+				}
 			}
 
-			return null;
+			throw new InvalidOperationException ("Cannot create ServerCertificateValidationCallback without any native X509 trust manager.");
 		}
 
-		private static ITrustManager[] ModifyTrustManagersArray (ITrustManager[] trustManagers, IX509TrustManager? original, IX509TrustManager replacement)
+		private static ITrustManager[] ModifyTrustManagersArray (ITrustManager[] trustManagers, int originalTrustManagerIndex, IX509TrustManager replacement)
 		{
-			var modifiedTrustManagersCount = original is null ? trustManagers.Length + 1 : trustManagers.Length;
-			var modifiedTrustManagersArray = new ITrustManager [modifiedTrustManagersCount];
-
-			modifiedTrustManagersArray [0] = replacement;
-			int nextIndex = 1;
+			var modifiedTrustManagersArray = new ITrustManager [trustManagers.Length];
 
 			for (int i = 0; i < trustManagers.Length; i++) {
-				if (trustManagers [i] == original) {
-					continue;
+				if (i == originalTrustManagerIndex) {
+					modifiedTrustManagersArray [i] = replacement;
+				} else {
+					modifiedTrustManagersArray [i] = trustManagers[i];
 				}
-
-				modifiedTrustManagersArray [nextIndex++] = trustManagers [i];
 			}
 
 			return modifiedTrustManagersArray;

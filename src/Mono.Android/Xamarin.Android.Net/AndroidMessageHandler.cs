@@ -1164,11 +1164,14 @@ namespace Xamarin.Android.Net
 				tmf?.Init (gotCerts ? keyStore : null); // only use the custom key store if the user defined any trusted certs
 			}
 
-			ITrustManager[]? trustManagers = tmf?.GetTrustManagers ();
+			ITrustManager[]? trustManagers = null;
+			if (tmf != null) {
+				trustManagers = tmf.GetTrustManagers ();
 
-			var customValidator = _serverCertificateCustomValidator;
-			if (customValidator is not null) {
-				trustManagers = customValidator.ReplaceX509TrustManager (trustManagers, requestMessage);
+				var customValidator = _serverCertificateCustomValidator;
+				if (customValidator is not null) {
+					trustManagers = customValidator.ReplaceX509TrustManager (trustManagers, requestMessage);
+				}
 			}
 
 			var context = SSLContext.GetInstance ("TLS");
