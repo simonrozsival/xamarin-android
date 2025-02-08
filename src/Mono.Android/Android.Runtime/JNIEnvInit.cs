@@ -33,6 +33,7 @@ namespace Android.Runtime
 			public bool            jniRemappingInUse;
 			public bool            marshalMethodsEnabled;
 			public IntPtr          grefGCUserPeerable;
+			public bool            managedMarshalMethodsLookupEnabled;
 		}
 #pragma warning restore 0649
 
@@ -40,6 +41,7 @@ namespace Android.Runtime
 		internal static bool IsRunningOnDesktop;
 		internal static bool jniRemappingInUse;
 		internal static bool MarshalMethodsEnabled;
+		internal static bool ManagedMarshalMethodsLookupEnabled;
 		internal static bool PropagateExceptions;
 		internal static BoundExceptionType BoundExceptionType;
 		internal static int gref_gc_threshold;
@@ -98,6 +100,7 @@ namespace Android.Runtime
 
 			jniRemappingInUse = args->jniRemappingInUse;
 			MarshalMethodsEnabled = args->marshalMethodsEnabled;
+			ManagedMarshalMethodsLookupEnabled = args->managedMarshalMethodsLookupEnabled;
 			java_class_loader = args->grefLoader;
 
 			mid_Class_forName = new JniMethodInfo (args->Class_forName, isStatic: true);

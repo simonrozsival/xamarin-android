@@ -74,6 +74,8 @@ namespace Xamarin.Android.Build.Tests
 			}
 		}
 
+		// TODO add test for managed_marshal_methods_lookup_enabled
+
 		[Test]
 		public void CompressedWithoutLinker ()
 		{

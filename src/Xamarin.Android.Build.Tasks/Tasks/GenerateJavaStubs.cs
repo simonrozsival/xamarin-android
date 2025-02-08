@@ -54,6 +54,7 @@ namespace Xamarin.Android.Tasks
 		public bool LinkingEnabled { get; set; }
 		public bool HaveMultipleRIDs { get; set; }
 		public bool EnableMarshalMethods { get; set; }
+		public bool EnableManagedMarshalMethodsLookup { get; set; }
 		public string ManifestTemplate { get; set; }
 		public string[] MergedManifestDocuments { get; set; }
 
@@ -241,8 +242,15 @@ namespace Xamarin.Android.Tasks
 
 				foreach (var kvp in nativeCodeGenStates) {
 					NativeCodeGenState state = kvp.Value;
-					RewriteMarshalMethods (state, brokenExceptionTransitionsEnabled);
-					state.Classifier.AddSpecialCaseMethods ();
+					if (!EnableManagedMarshalMethodsLookup) {
+						RewriteMarshalMethods (state, brokenExceptionTransitionsEnabled);
+						state.Classifier.AddSpecialCaseMethods ();
+					} else {
+						// I need to run `AddSpecialCaseMethods` before `RewriteMarshalMethods` so that I can see the TypeManager.n_Activate_mm UCO when generating the lookup tables.
+						// TODO as far as I can tell, this doesn't break anything, but it needs further confirmation before I put this out for review
+						state.Classifier.AddSpecialCaseMethods ();
+						RewriteMarshalMethods (state, brokenExceptionTransitionsEnabled);
+					}
 
 					Log.LogDebugMessage ($"[{state.TargetArch}] Number of generated marshal methods: {state.Classifier.MarshalMethods.Count}");
 					if (state.Classifier.RejectedMethodCount > 0) {
@@ -441,7 +449,11 @@ namespace Xamarin.Android.Tasks
 				return;
 			}
 
-			var rewriter = new MarshalMethodsAssemblyRewriter (Log, state.TargetArch, state.Classifier, state.Resolver);
+			if (EnableManagedMarshalMethodsLookup) {
+				state.ManagedMarshalMethodsLookupInfo = new ManagedMarshalMethodsLookupInfo (Log);
+			}
+
+			var rewriter = new MarshalMethodsAssemblyRewriter (Log, state.TargetArch, state.Classifier, state.Resolver, state.ManagedMarshalMethodsLookupInfo);
 			rewriter.Rewrite (brokenExceptionTransitionsEnabled);
 		}
 
