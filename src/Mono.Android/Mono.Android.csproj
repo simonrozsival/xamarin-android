@@ -300,6 +300,7 @@
     <Compile Include="Android.Widget\DatePicker.cs" />
     <Compile Include="Android.Widget\MediaController.cs" />
     <Compile Include="Android.Widget\TextView.cs" />
+    <Compile Include="Java.IO\InputStream.cs" />
     <Compile Include="Java.IO\ObjectStreamField.cs" />
     <Compile Include="Java.Interop\AndroidEventHelper.cs" />
     <Compile Include="Java.Interop\DoNotPackageAttribute.cs" />

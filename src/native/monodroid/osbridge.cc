@@ -847,9 +847,9 @@ OSBridge::gc_prepare_for_java_collection (JNIEnv *env, int num_sccs, MonoGCBridg
 void
 OSBridge::gc_cleanup_after_java_collection (JNIEnv *env, int num_sccs, MonoGCBridgeSCC **sccs)
 {
-#if DEBUG
+// #if DEBUG
 	MonoClass *klass;
-#endif
+// #endif
 	MonoObject *obj;
 	jobject jref;
 	jmethodID clear_method_id;
@@ -913,9 +913,24 @@ OSBridge::gc_cleanup_after_java_collection (JNIEnv *env, int num_sccs, MonoGCBri
 			}
 		}
 	}
-#if DEBUG
 	log_info (LOG_GC, "GC cleanup summary: {} objects tested - resurrecting {}.", total, alive);
-#endif
+
+	for (i = 0; i < num_sccs; i++) {
+		// print all the objects in the dead SCCS
+		if (!sccs [i]->is_alive) {
+			for (j = 0; j < sccs [i]->num_objs; j++) {
+				obj = sccs [i]->objs [j];
+				klass = mono_object_get_class (obj);
+
+				log_info (
+					LOG_GC,
+					"GC cleanup [sccs {}]: DEAD {}.{}\n",
+					i,
+					optional_string (mono_class_get_namespace (klass)),
+					optional_string (mono_class_get_name (klass)));
+			}
+		}
+	}
 }
 
 void

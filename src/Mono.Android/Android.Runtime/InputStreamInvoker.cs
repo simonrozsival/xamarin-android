@@ -16,10 +16,11 @@ namespace Android.Runtime
 				throw new ArgumentNullException (nameof (stream));
 
 			BaseInputStream = stream;
+			Log ("ctor");
 
-			// We need to keep a global reference to the Java.IO.InputStream instance
-			// so that it doesn't get garbage collected on the Java side while we're using it.
-			inputStreamGref = JNIEnv.NewGlobalRef (stream.Handle);
+			// // We need to keep a global reference to the Java.IO.InputStream instance
+			// // so that it doesn't get garbage collected on the Java side while we're using it.
+			// inputStreamGref = JNIEnv.NewGlobalRef (stream.Handle);
 
 			Java.IO.FileInputStream? fileStream = stream as Java.IO.FileInputStream;
 			if (fileStream != null)
@@ -39,6 +40,7 @@ namespace Android.Runtime
 		//
 		protected override void Dispose (bool disposing)
 		{
+			Log ("Dispose");
 			if (disposing && BaseInputStream != null) {
 				try {
 					BaseFileChannel = null;
@@ -46,14 +48,14 @@ namespace Android.Runtime
 						BaseInputStream.Close ();
 					}
 					BaseInputStream.Dispose ();
+
+					if (inputStreamGref != IntPtr.Zero) {
+						JNIEnv.DeleteGlobalRef (inputStreamGref);
+						inputStreamGref = IntPtr.Zero;
+					}
 				} catch (Java.IO.IOException ex) when (JNIEnv.ShouldWrapJavaException (ex)) {
 					throw new IOException (ex.Message, ex);
 				}
-			}
-
-			if (inputStreamGref != IntPtr.Zero) {
-				JNIEnv.DeleteGlobalRef (inputStreamGref);
-				inputStreamGref = IntPtr.Zero;
 			}
 		}
 
@@ -70,6 +72,7 @@ namespace Android.Runtime
 		//
 		public override void Close ()
 		{
+			Log ("Close");
 			base.Close ();
 		}
 
@@ -91,21 +94,32 @@ namespace Android.Runtime
 		//
 		public override int Read (byte[] buffer, int offset, int count)
 		{
+			Log ("Read");
 			int res;
 
 			try {
-				res = BaseInputStream.Read (buffer, offset, count);
-			} catch (Java.IO.IOException ex) when (JNIEnv.ShouldWrapJavaException (ex)) {
-				throw new IOException (ex.Message, ex);
+				try {
+					res = BaseInputStream.Read (buffer, offset, count);
+				} catch (Java.IO.IOException ex) when (JNIEnv.ShouldWrapJavaException (ex)) {
+					throw new IOException (ex.Message, ex);
+				}
+			} catch (Exception ex) {
+				Logger.Log (LogLevel.Error, "Android.Runtime.InputStreamInvoker", $"Exception in Read: {ex}");
+				throw;
 			}
 
-			if (res == -1)
+			if (res == -1) {
+				Log ("Read res -1");
 				return 0;
+			}
+
+			Log ($"Read res {res}");
 			return res;
 		}
 
 		public override long Seek (long offset, SeekOrigin origin)
 		{
+			Log ("Seek");
 			if (BaseFileChannel == null)
 				throw new NotSupportedException ();
 
@@ -160,20 +174,35 @@ namespace Android.Runtime
 					throw new NotSupportedException ();
 			}
 		}
-		
+
 		public static Stream? FromJniHandle (IntPtr handle, JniHandleOwnership transfer)
 		{
+			Logger.Log (LogLevel.Debug, "Android.Runtime.InputStreamInvoker", $"FromJniHandle ({handle}, {transfer})");
 			if (handle == IntPtr.Zero)
 				return null;
 
 			var inst = (IJavaObject?) Java.Lang.Object.PeekObject (handle);
 
-			if (inst == null)
+			if (inst == null) {
 				inst = (IJavaObject) Java.Interop.TypeManager.CreateInstance (handle, transfer);
-			else
-				JNIEnv.DeleteRef (handle, transfer);
+				Log ("FromJniHandle: Created new instance", inst);
+			} else {
+				// JNIEnv.DeleteRef (handle, transfer);
+				Log ("FromJniHandle: Reusing existing instance", inst);
+			}
 
 			return new InputStreamInvoker ((Java.IO.InputStream)inst);
+		}
+
+		private void Log (string msg)
+		{
+			Log (msg, BaseInputStream);
+		}
+
+		private static void Log (string msg, IJavaObject obj)
+		{
+			Logger.Log (LogLevel.Debug, "Android.Runtime.InputStreamInvoker", $"{msg} (type: {obj?.GetType()}, handle: 0x{obj?.Handle:x2}, identity hash: {(obj as global::Java.Lang.Object)?.JniIdentityHashCode}, peer reference is valid: {(obj as global::Java.Lang.Object)?.PeerReference.IsValid})");
+			Logger.Log (LogLevel.Debug, "Android.Runtime.InputStreamInvoker", new System.Diagnostics.StackTrace(true).ToString());
 		}
 	}
 }

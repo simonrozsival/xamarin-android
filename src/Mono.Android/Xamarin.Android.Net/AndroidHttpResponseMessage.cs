@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using System.Net.Http;
 
 using Java.Net;
+using Android.Runtime;
+
 
 namespace Xamarin.Android.Net
 {
@@ -31,7 +33,7 @@ namespace Xamarin.Android.Net
 		public AndroidHttpResponseMessage ()
 		{}
 
-		public AndroidHttpResponseMessage (URL javaUrl, HttpURLConnection httpConnection) 
+		public AndroidHttpResponseMessage (URL javaUrl, HttpURLConnection httpConnection)
 		{
 			this.javaUrl = javaUrl;
 			this.httpConnection = httpConnection;
@@ -39,6 +41,8 @@ namespace Xamarin.Android.Net
 
 		protected override void Dispose (bool disposing)
 		{
+			Logger.Log (LogLevel.Info, "monodroid", "AndroidHttpResponseMessage.Dispose");
+
 			base.Dispose(disposing);
 
 			if (javaUrl != null) {
